@@ -19,7 +19,7 @@ Create a JSON file in the running user's home directory called `.change-detector
 }
 ```
 
-You'll get alerted if anything changes within the entire DOM tree that is specified by the CSS selector.
+You'll get alerted if anything changes within the entire DOM tree that is rooted at the specified CSS selector.
 
 ## Running
 
