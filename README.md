@@ -17,7 +17,11 @@ Create a JSON file in the running user's home directory called `.change-detector
 }
 ```
 
+The CSS selector will take the HTML for that element its children. You'll get alerted if anything changes within that entire DOM tree.
+
 ## Running
+
+I run this via cron on a Raspberry Pi:
 
 ```
 */15 * * * * PUSHOVER_USER=<user> PUSHOVER_TOKEN=<token> /home/pi/change-detector/detect >/var/log/change-detector.log 2>&1
