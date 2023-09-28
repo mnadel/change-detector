@@ -1,5 +1,7 @@
 # change-detector
 
+Get a push notification if anything changes on a website since the last time we looked at it.
+
 ## Installing
 
 1. Install dependencies via: `pip3 install -Ur requirements.txt`
@@ -17,7 +19,7 @@ Create a JSON file in the running user's home directory called `.change-detector
 }
 ```
 
-The CSS selector will take the HTML for that element its children. You'll get alerted if anything changes within that entire DOM tree.
+You'll get alerted if anything changes within the entire DOM tree that is specified by the CSS selector.
 
 ## Running
 
