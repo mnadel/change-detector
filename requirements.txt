@@ -1,0 +1,3 @@
+pickledb
+requests
+bs4

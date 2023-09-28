@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import time
+import json
+from hashlib import md5
+from datetime import datetime
+
+import pickledb
+import requests
+from bs4 import BeautifulSoup
+
+
+def env(name):
+    if name not in os.environ:
+        print(f"missing envvar: {name}")
+        sys.exit(2)
+    return os.environ[name]
+
+def log(msg, *args):
+    formattable = f"{datetime.now().isoformat()} ** {msg}"
+    print(formattable.format(*args))
+
+
+class Detector:
+    @staticmethod
+    def varfile(name):
+        return os.path.join(os.path.expanduser("~"), name)
+
+    def __enter__(self):
+        self.db = pickledb.load(self.varfile(".change-detector.db"), False)
+        self.tracking = json.load(open(self.varfile(".change-detector.json")))
+        return self
+
+    def __exit__(self, ex_type, ex_val, ex_tb):
+        self.db.dump()
+
+    def tracked_items(self):
+        return self.tracking.items()
+
+    def publish_change(self, url):
+        now = int(time.time())
+        key = f"notif::{url}"
+        last_notif = self.db.get(key)
+        elapsed_secs = now - last_notif if last_notif else -1
+
+        log("publish request url={}, last={}, elapsed={}", url, last_notif, elapsed_secs)
+
+        if not last_notif or elapsed_secs >= 60*15: # 15 mins
+            self.db.set(key, now)
+            requests.post("https://api.pushover.net/1/messages.json", data={
+                "token": env("PUSHOVER_TOKEN"),
+                "user": env("PUSHOVER_USER"),
+                "title": "Website changed!",
+                "message": f"Change detected at {url}",
+                "url": url
+            }, timeout=5)
+
+    def did_change(self, url, digest):
+        prev = self.db.get(url)
+        self.db.set(url, digest)
+        if not prev:
+            return False
+        else:
+            return prev != digest
+
+
+def fetch(url):
+    return requests.get(url, timeout=5)
+
+def select(html, selector):
+    soup = BeautifulSoup(html, "html.parser")
+    return soup.select(selector)
+
+def hashcode(obj):
+    return md5(str(obj).encode("utf8")).hexdigest()
+
+with Detector() as detect:
+    for url, selector in detect.tracked_items():
+        if not url or not selector:
+            log("skipping empty check url={}, selector={}", url, selector)
+            continue
+
+        log("checking: {}", url)
+
+        try:
+            res = fetch(url)
+            if res.status_code != 200:
+                log("got error {}: {}", res.status_code, url)
+                continue
+
+            item = select(res.text, selector)
+            hash = hashcode(item)
+
+            if detect.did_change(url, hash):
+                log("changed: {}", url)
+                detect.publish_change(url)
+            else:
+                log("unchanged: {}", url)
+        except Exception as e:
+            log("error with {}: {}", url, e)
