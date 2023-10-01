@@ -5,7 +5,7 @@ Get a push notification if anything changes on a website since the last time we 
 ## Installing
 
 1. Install dependencies via: `pip3 install -Ur requirements.txt`
-1. Create a [Pushover](https://pushover.net) application to get a token (and, a user id)
+1. Create a [Pushover](https://pushover.net) application to get a token (and a user id)
 
 ## Configuring
 
