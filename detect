@@ -5,6 +5,7 @@ import sys
 import time
 import json
 from hashlib import md5
+from os.path import exists
 from datetime import datetime
 
 import pickledb
@@ -12,10 +13,13 @@ import requests
 from bs4 import BeautifulSoup
 
 
+ERR_MISSING_ENV = 2
+
+
 def env(name):
     if name not in os.environ:
         print(f"missing envvar: {name}")
-        sys.exit(2)
+        sys.exit(ERR_MISSING_ENV)
     return os.environ[name]
 
 def log(msg, *args):
@@ -29,8 +33,17 @@ class Detector:
         return os.path.join(os.path.expanduser("~"), name)
 
     def __init__(self):
-        self.db = pickledb.load(self.varfile(".change-detector.db"), False)
-        with open(self.varfile(".change-detector.json"), mode="r", encoding="utf8") as f:
+        db_file = self.varfile(".change-detector.db")
+        config_file = self.varfile(".change-detector.json")
+
+        self.db = pickledb.load(db_file, False)
+
+        if not exists(config_file):
+            log("creating config file: {}", config_file)
+            with open(config_file, mode="w", encoding="utf8") as f:
+                json.dump({}, f, indent=4)
+
+        with open(config_file, mode="r", encoding="utf8") as f:
             self.tracking = json.load(f)
 
     def __enter__(self):
